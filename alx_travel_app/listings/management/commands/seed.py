@@ -1,47 +1,34 @@
-import random
 from django.core.management.base import BaseCommand
-from listings.models import Listing, Booking, Review
-from django.utils import timezone
-from datetime import timedelta
+from django.contrib.auth.models import User
+from listings.models import Listing
+from random import randint, choice
 
 class Command(BaseCommand):
-    help = 'Seed the database with sample listings, bookings, and reviews'
+    help = 'Seed the database with sample listings data'
 
-    def handle(self, *args, **options):
-        self.stdout.write('Deleting old data...')
-        Booking.objects.all().delete()
-        Review.objects.all().delete()
-        Listing.objects.all().delete()
+    def handle(self, *args, **kwargs):
+        # Create a default user if not exists
+        user, created = User.objects.get_or_create(username='demo_owner')
+        if created:
+            user.set_password('password123')
+            user.save()
 
-        self.stdout.write('Creating listings...')
-        listings = []
+        sample_locations = ['Lagos', 'Abuja', 'Nairobi', 'Cape Town', 'Accra']
+        sample_titles = [
+            'Cozy Apartment in City Center',
+            'Luxury Villa with Pool',
+            'Budget Room Near Airport',
+            'Beachfront Bungalow',
+            'Modern Studio Flat'
+        ]
+
         for i in range(10):
-            listing = Listing.objects.create(
-                title=f'Cozy Apartment #{i + 1}',
-                description='A nice and cozy place to stay.',
-                price_per_night=random.uniform(50, 200),
-                location='City Center'
+            Listing.objects.create(
+                title=choice(sample_titles),
+                description='Sample description for listing {}'.format(i+1),
+                location=choice(sample_locations),
+                price_per_night=randint(50, 500),
+                owner=user
             )
-            listings.append(listing)
 
-        self.stdout.write('Creating bookings and reviews...')
-        for listing in listings:
-            # Create bookings
-            for j in range(random.randint(1, 5)):
-                Booking.objects.create(
-                    listing=listing,
-                    user_name=f'User{j + 1}',
-                    check_in=timezone.now().date() + timedelta(days=j * 7),
-                    check_out=timezone.now().date() + timedelta(days=j * 7 + 3)
-                )
-            # Create reviews
-            for k in range(random.randint(1, 3)):
-                Review.objects.create(
-                    listing=listing,
-                    user_name=f'Reviewer{k + 1}',
-                    rating=random.randint(1, 5),
-                    comment='This is a great place!',
-                    created_at=timezone.now()
-                )
-
-        self.stdout.write(self.style.SUCCESS('Database seeded successfully!'))
+        self.stdout.write(self.style.SUCCESS('Successfully seeded sample listings!'))
